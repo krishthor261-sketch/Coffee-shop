@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brew &amp; Bloom</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&amp;family=DM+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brew: {
+              cream: '#F5EDE3',
+              brown: '#5C3D2E',
+              sage: '#8B9F7B',
+              dark: '#3A2418',
+              warm: '#C4A882',
+              light: '#FAF7F2'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes steamRise {
+      0% { opacity: 0; transform: translateY(0) scale(1); }
+      50% { opacity: 0.6; }
+      100% { opacity: 0; transform: translateY(-40px) scale(1.5); }
+    }
+    .anim-fade-up { animation: fadeUp 0.8s ease forwards; opacity: 0; }
+    .anim-delay-1 { animation-delay: 0.15s; }
+    .anim-delay-2 { animation-delay: 0.3s; }
+    .anim-delay-3 { animation-delay: 0.45s; }
+    .anim-delay-4 { animation-delay: 0.6s; }
+    .anim-float { animation: float 3s ease-in-out infinite; }
+    .steam-line {
+      position: absolute;
+      width: 2px;
+      height: 20px;
+      background: rgba(196,168,130,0.4);
+      border-radius: 50%;
+      animation: steamRise 2s ease-in-out infinite;
+    }
+    .testimonial-track {
+      display: flex;
+      transition: transform 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    html { scroll-behavior: smooth; }
+    * { font-family: 'DM Sans', sans-serif; }
+    .font-display { font-family: 'Playfair Display', serif; }
+    .order-modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(58,36,24,0.6);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .order-modal-overlay.active { opacity: 1; pointer-events: all; }
+    .toast-container {
+      position: fixed; top: 20px; right: 20px; z-index: 200;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px; border-radius: 8px;
+      color: #fff; font-size: 14px; font-weight: 500;
+      transform: translateX(120%); transition: transform 0.4s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .toast.show { transform: translateX(0); }
+    .toast.success { background: #5C3D2E; }
+    .toast.error { background: #b44; }
+    .ig-grid-item {
+      position: relative; overflow: hidden; border-radius: 8px;
+      aspect-ratio: 1; cursor: pointer;
+    }
+    .ig-grid-item::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(58,36,24,0.5), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .ig-grid-item:hover::after { opacity: 1; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app-wrapper" class="w-full h-full overflow-auto" style="background:#FAF7F2;"><!-- Toast Container -->
+   <div class="toast-container" id="toastContainer"></div><!-- Navigation -->
+   <nav id="mainNav" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" style="background:rgba(250,247,242,0.9); backdrop-filter:blur(12px);">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16"><a href="#hero" class="font-display text-xl font-bold" style="color:#5C3D2E;">Brew <span style="color:#8B9F7B;">&amp;</span> Bloom</a>
+     <div class="hidden md:flex items-center gap-8 text-sm font-medium" style="color:#5C3D2E;"><a href="#menu" class="hover:opacity-70 transition">Menu</a> <a href="#about" class="hover:opacity-70 transition">About</a> <a href="#testimonials" class="hover:opacity-70 transition">Reviews</a> <a href="#location" class="hover:opacity-70 transition">Visit</a> <button id="navOrderBtn" class="px-5 py-2 rounded-full text-sm font-semibold text-white transition hover:scale-105" style="background:#5C3D2E;">Order Online</button>
+     </div><button id="mobileMenuBtn" class="md:hidden" style="color:#5C3D2E;"><i data-lucide="menu" style="width:24px;height:24px;"></i></button>
+    </div><!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden hidden px-4 pb-4 text-sm font-medium" style="color:#5C3D2E;"><a href="#menu" class="block py-2">Menu</a> <a href="#about" class="block py-2">About</a> <a href="#testimonials" class="block py-2">Reviews</a> <a href="#location" class="block py-2">Visit</a> <button id="mobileOrderBtn" class="mt-2 w-full px-5 py-2 rounded-full text-sm font-semibold text-white" style="background:#5C3D2E;">Order Online</button>
+    </div>
+   </nav><!-- Hero Section -->
+   <section id="hero" class="relative w-full overflow-hidden" style="min-height:90%; background: linear-gradient(135deg, #F5EDE3 0%, #FAF7F2 40%, #e8ddd0 100%);">
+    <div class="absolute inset-0 overflow-hidden">
+     <div class="absolute top-20 right-10 w-64 h-64 rounded-full opacity-20" style="background:#8B9F7B; filter:blur(80px);"></div>
+     <div class="absolute bottom-20 left-10 w-48 h-48 rounded-full opacity-15" style="background:#C4A882; filter:blur(60px);"></div>
+    </div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 flex flex-col lg:flex-row items-center justify-center gap-12 pt-32 pb-20">
+     <div class="flex-1 text-center lg:text-left">
+      <p class="anim-fade-up text-sm font-semibold tracking-widest uppercase mb-4" style="color:#8B9F7B;">Est. 2019 · Downtown</p>
+      <h1 id="heroTitle" class="anim-fade-up anim-delay-1 font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:#3A2418;">Handcrafted Coffee &amp; Homemade Pastries</h1>
+      <p id="heroSubtitle" class="anim-fade-up anim-delay-2 text-lg mb-8 max-w-lg mx-auto lg:mx-0" style="color:#5C3D2E; opacity:0.8;">Where every cup tells a story and every pastry is baked with love. Your neighborhood gathering place.</p>
+      <div class="anim-fade-up anim-delay-3 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"><button id="heroOrderBtn" class="px-8 py-3.5 rounded-full font-semibold text-white transition hover:scale-105 shadow-lg" style="background:#5C3D2E;"> <span class="flex items-center gap-2 justify-center"><i data-lucide="coffee" style="width:18px;height:18px;"></i> Order Online</span> </button> <a href="#menu" class="px-8 py-3.5 rounded-full font-semibold border-2 transition hover:scale-105" style="color:#5C3D2E; border-color:#5C3D2E;">View Menu</a>
+      </div>
+     </div>
+     <div class="flex-1 flex justify-center anim-fade-up anim-delay-4">
+      <div class="relative anim-float"><!-- Coffee Cup SVG -->
+       <svg width="280" height="320" viewbox="0 0 280 320" fill="none"><ellipse cx="130" cy="290" rx="100" ry="16" fill="#3A2418" opacity="0.1" /> <path d="M40 100 C40 100 35 280 50 285 C65 290 195 290 210 285 C225 280 220 100 220 100Z" fill="#F5EDE3" stroke="#5C3D2E" stroke-width="3" /> <path d="M50 110 C50 110 47 270 58 273 C69 276 191 276 202 273 C213 270 210 110 210 110Z" fill="#C4A882" /> <ellipse cx="130" cy="108" rx="92" ry="18" fill="#e8ddd0" stroke="#5C3D2E" stroke-width="3" /> <ellipse cx="130" cy="108" rx="80" ry="14" fill="#C4A882" opacity="0.6" /> <path d="M220 140 C250 140 265 165 260 195 C255 220 235 230 220 225" fill="none" stroke="#5C3D2E" stroke-width="3" stroke-linecap="round" /> <!-- Leaf decoration --> <path d="M100 170 Q130 140 160 170 Q130 155 100 170Z" fill="#8B9F7B" opacity="0.6" /> <line x1="130" y1="145" x2="130" y2="180" stroke="#8B9F7B" stroke-width="1.5" opacity="0.5" />
+       </svg><!-- Steam lines -->
+       <div class="steam-line" style="left:100px; top:50px; animation-delay:0s;"></div>
+       <div class="steam-line" style="left:125px; top:45px; animation-delay:0.5s;"></div>
+       <div class="steam-line" style="left:155px; top:50px; animation-delay:1s;"></div>
+      </div>
+     </div>
+    </div>
+    <div class="absolute bottom-0 left-0 right-0 h-24" style="background: linear-gradient(to top, #FAF7F2, transparent);"></div>
+   </section><!-- Menu Section -->
+   <section id="menu" class="py-20 w-full" style="background:#FAF7F2;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+     <div class="text-center mb-14">
+      <p class="text-sm font-semibold tracking-widest uppercase mb-3" style="color:#8B9F7B;">What We Serve</p>
+      <h2 id="menuTitle" class="font-display text-3xl sm:text-4xl font-bold" style="color:#3A2418;">Our Favorites</h2>
+     </div>
+     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="menuGrid">
+     </div>
+    </div>
+   </section><!-- About Section -->
+   <section id="about" class="py-20 w-full" style="background:#F5EDE3;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+     <div class="flex flex-col lg:flex-row items-center gap-14">
+      <div class="flex-1">
+       <div class="relative rounded-2xl overflow-hidden" style="background:linear-gradient(135deg,#C4A882 0%,#8B9F7B 100%); aspect-ratio:4/3;">
+        <div class="absolute inset-0 flex items-center justify-center">
+         <svg width="180" height="180" viewbox="0 0 180 180" fill="none"><circle cx="90" cy="90" r="70" fill="rgba(255,255,255,0.15)" /> <path d="M60 120 Q60 70 90 55 Q120 70 120 120Z" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)" stroke-width="2" /> <path d="M75 90 Q90 75 105 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" /> <circle cx="90" cy="95" r="3" fill="rgba(255,255,255,0.6)" /> <path d="M70 115 L90 60 L110 115" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" /> <text x="90" y="145" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" font-family="DM Sans">
+           Since 2019
+          </text>
+         </svg>
+        </div>
+       </div>
+      </div>
+      <div class="flex-1">
+       <p class="text-sm font-semibold tracking-widest uppercase mb-3" style="color:#8B9F7B;">Who We Are</p>
+       <h2 id="aboutTitle" class="font-display text-3xl sm:text-4xl font-bold mb-6" style="color:#3A2418;">Our Story</h2>
+       <p id="aboutText" class="text-base leading-relaxed mb-6" style="color:#5C3D2E; opacity:0.85;">Nestled in the heart of downtown, Brew &amp; Bloom was born from a simple dream — to create a space where the aroma of freshly roasted beans meets the warmth of genuine community. Every cup is hand-poured, every pastry baked fresh each morning.</p>
+       <div class="flex gap-8">
+        <div>
+         <p class="font-display text-3xl font-bold" style="color:#5C3D2E;">5+</p>
+         <p class="text-sm" style="color:#8B9F7B;">Years Brewing</p>
+        </div>
+        <div>
+         <p class="font-display text-3xl font-bold" style="color:#5C3D2E;">12k</p>
+         <p class="text-sm" style="color:#8B9F7B;">Happy Customers</p>
+        </div>
+        <div>
+         <p class="font-display text-3xl font-bold" style="color:#5C3D2E;">30+</p>
+         <p class="text-sm" style="color:#8B9F7B;">Menu Items</p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section><!-- Testimonials Section -->
+   <section id="testimonials" class="py-20 w-full" style="background:#FAF7F2;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+     <div class="text-center mb-14">
+      <p class="text-sm font-semibold tracking-widest uppercase mb-3" style="color:#8B9F7B;">What People Say</p>
+      <h2 class="font-display text-3xl sm:text-4xl font-bold" style="color:#3A2418;">Customer Love</h2>
+     </div>
+     <div class="relative overflow-hidden rounded-2xl">
+      <div class="testimonial-track" id="testimonialTrack"></div>
+      <div class="flex justify-center gap-3 mt-8"><button id="prevTest" class="w-10 h-10 rounded-full flex items-center justify-center border-2 transition hover:scale-110" style="border-color:#5C3D2E; color:#5C3D2E;"> <i data-lucide="chevron-left" style="width:18px;height:18px;"></i> </button>
+       <div id="testimonialDots" class="flex items-center gap-2"></div><button id="nextTest" class="w-10 h-10 rounded-full flex items-center justify-center border-2 transition hover:scale-110" style="border-color:#5C3D2E; color:#5C3D2E;"> <i data-lucide="chevron-right" style="width:18px;height:18px;"></i> </button>
+      </div>
+     </div>
+    </div>
+   </section><!-- Instagram Section -->
+   <section id="instagram" class="py-20 w-full" style="background:#F5EDE3;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+     <div class="text-center mb-14">
+      <p class="text-sm font-semibold tracking-widest uppercase mb-3" style="color:#8B9F7B;">@brewandbloom</p>
+      <h2 class="font-display text-3xl sm:text-4xl font-bold" style="color:#3A2418;">Follow the Flavor</h2>
+     </div>
+     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="igGrid"></div>
+     <p class="text-center mt-6 text-sm" style="color:#5C3D2E; opacity:0.7;">✦ Sample gallery — connect your Instagram for live posts</p>
+    </div>
+   </section><!-- Location Section -->
+   <section id="location" class="py-20 w-full" style="background:#FAF7F2;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+     <div class="text-center mb-14">
+      <p class="text-sm font-semibold tracking-widest uppercase mb-3" style="color:#8B9F7B;">Find Us</p>
+      <h2 class="font-display text-3xl sm:text-4xl font-bold" style="color:#3A2418;">Visit Our Shop</h2>
+     </div>
+     <div class="flex flex-col lg:flex-row gap-8">
+      <div class="flex-1 rounded-2xl overflow-hidden" style="background:linear-gradient(135deg,#e8ddd0,#d4c8b8); min-height:300px; position:relative;"><!-- Stylized map illustration -->
+       <svg width="100%" height="100%" viewbox="0 0 600 350" preserveaspectratio="xMidYMid slice" style="position:absolute;inset:0;"><rect width="600" height="350" fill="#e8ddd0" /> <path d="M0 200 L200 180 L400 200 L600 190" stroke="#C4A882" stroke-width="30" fill="none" opacity="0.4" /> <path d="M300 0 L290 350" stroke="#C4A882" stroke-width="30" fill="none" opacity="0.3" /> <path d="M100 0 L110 350" stroke="#C4A882" stroke-width="20" fill="none" opacity="0.2" /> <path d="M500 0 L490 350" stroke="#C4A882" stroke-width="20" fill="none" opacity="0.2" /> <path d="M0 100 L600 110" stroke="#C4A882" stroke-width="20" fill="none" opacity="0.2" /> <!-- Location pin --> <g transform="translate(300,155)">
+         <circle r="30" fill="#5C3D2E" opacity="0.15" />
+         <circle r="18" fill="#5C3D2E" opacity="0.25" />
+         <path d="M0 -25 C-12 -25 -18 -15 -18 -6 C-18 8 0 25 0 25 C0 25 18 8 18 -6 C18 -15 12 -25 0 -25Z" fill="#5C3D2E" />
+         <circle cy="-8" r="5" fill="#F5EDE3" />
+        </g> <text x="300" y="210" text-anchor="middle" fill="#5C3D2E" font-size="13" font-weight="600" font-family="DM Sans">
+         123 Bloom Street, Downtown
+        </text>
+       </svg>
+      </div>
+      <div class="lg:w-80 flex flex-col gap-5">
+       <div class="rounded-xl p-5" style="background:#F5EDE3;">
+        <div class="flex items-start gap-3"><i data-lucide="map-pin" style="width:20px;height:20px;color:#8B9F7B; flex-shrink:0; margin-top:2px;"></i>
+         <div>
+          <p class="font-semibold text-sm" style="color:#3A2418;">Address</p>
+          <p class="text-sm mt-1" style="color:#5C3D2E;">123 Bloom Street, Downtown<br>
+           Portland, OR 97201</p>
+         </div>
+        </div>
+       </div>
+       <div class="rounded-xl p-5" style="background:#F5EDE3;">
+        <div class="flex items-start gap-3"><i data-lucide="clock" style="width:20px;height:20px;color:#8B9F7B; flex-shrink:0; margin-top:2px;"></i>
+         <div>
+          <p class="font-semibold text-sm" style="color:#3A2418;">Hours</p>
+          <p class="text-sm mt-1" style="color:#5C3D2E;">Mon–Fri: 7am – 7pm<br>
+           Sat–Sun: 8am – 8pm</p>
+         </div>
+        </div>
+       </div>
+       <div class="rounded-xl p-5" style="background:#F5EDE3;">
+        <div class="flex items-start gap-3"><i data-lucide="phone" style="width:20px;height:20px;color:#8B9F7B; flex-shrink:0; margin-top:2px;"></i>
+         <div>
+          <p class="font-semibold text-sm" style="color:#3A2418;">Contact</p>
+          <p class="text-sm mt-1" style="color:#5C3D2E;">(503) 555-BREW<br>
+           hello@brewandbloom.com</p>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section><!-- Newsletter Section -->
+   <section id="newsletter" class="py-20 w-full" style="background:linear-gradient(135deg,#5C3D2E 0%,#3A2418 100%);">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center">
+     <div class="mb-3" style="color:#8B9F7B;"><i data-lucide="mail" style="width:32px;height:32px; display:inline-block;"></i>
+     </div>
+     <h2 id="newsletterTitle" class="font-display text-3xl sm:text-4xl font-bold mb-4" style="color:#F5EDE3;">Stay in the Loop</h2>
+     <p class="mb-8 text-base" style="color:#C4A882;">Get weekly specials, new menu drops, and event invites delivered to your inbox.</p>
+     <form id="newsletterForm" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"><label for="nlEmail" class="sr-only">Email address</label> <input id="nlEmail" type="email" placeholder="your@email.com" required class="flex-1 px-5 py-3 rounded-full text-sm outline-none" style="background:rgba(255,255,255,0.12); color:#F5EDE3; border:1px solid rgba(255,255,255,0.15);"> <button type="submit" id="nlSubmitBtn" class="px-7 py-3 rounded-full font-semibold text-sm transition hover:scale-105" style="background:#8B9F7B; color:#fff;">Subscribe</button>
+     </form>
+     <p id="nlStatus" class="mt-4 text-sm" style="color:#C4A882; display:none;"></p>
+    </div>
+   </section><!-- Footer -->
+   <footer class="py-10 w-full" style="background:#3A2418;">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+     <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="font-display text-lg font-bold" style="color:#F5EDE3;">Brew <span style="color:#8B9F7B;">&amp;</span> Bloom</p>
+      <p id="footerText" class="text-sm" style="color:#C4A882;">© 2024 Brew &amp; Bloom. All rights reserved.</p>
+     </div>
+    </div>
+   </footer><!-- Order Online Modal -->
+   <div class="order-modal-overlay" id="orderModal">
+    <div class="rounded-2xl w-full max-w-lg mx-4 p-8 relative max-h-[90%] overflow-auto" style="background:#FAF7F2;"><button id="closeOrderModal" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition hover:scale-110" style="color:#5C3D2E;"> <i data-lucide="x" style="width:20px;height:20px;"></i> </button>
+     <h3 class="font-display text-2xl font-bold mb-1" style="color:#3A2418;">Order Online</h3>
+     <p class="text-sm mb-6" style="color:#5C3D2E; opacity:0.7;">Sample order form — connect your webhook for live orders</p>
+     <form id="orderForm">
+      <div class="mb-4"><label for="orderName" class="block text-sm font-medium mb-1.5" style="color:#3A2418;">Your Name</label> <input id="orderName" type="text" required placeholder="Jane Doe" class="w-full px-4 py-2.5 rounded-lg text-sm outline-none" style="background:#F5EDE3; border:1px solid #d4c8b8; color:#3A2418;">
+      </div>
+      <div class="mb-4"><label for="orderItems" class="block text-sm font-medium mb-1.5" style="color:#3A2418;">Items to Order</label> <textarea id="orderItems" required rows="3" placeholder="e.g. 2x Lavender Latte, 1x Almond Croissant" class="w-full px-4 py-2.5 rounded-lg text-sm outline-none resize-none" style="background:#F5EDE3; border:1px solid #d4c8b8; color:#3A2418;"></textarea>
+      </div>
+      <div class="mb-6"><label for="orderAddress" class="block text-sm font-medium mb-1.5" style="color:#3A2418;">Delivery Address</label> <input id="orderAddress" type="text" required placeholder="123 Main St, Apt 4B" class="w-full px-4 py-2.5 rounded-lg text-sm outline-none" style="background:#F5EDE3; border:1px solid #d4c8b8; color:#3A2418;">
+      </div><button type="submit" id="orderSubmitBtn" class="w-full py-3 rounded-full font-semibold text-white transition hover:scale-105" style="background:#5C3D2E;"> <span id="orderSubmitText">Place Order</span> </button>
+     </form>
+     <p id="orderStatus" class="mt-4 text-sm text-center" style="display:none;"></p>
+    </div>
+   </div>
+  </div>
+  <script>
+// =================== Data ===================
+const menuItems = [
+  { name: 'Lavender Latte', price: '$5.50', desc: 'Espresso, lavender syrup & steamed oat milk', emoji: '💜', bg: '#e8ddf0' },
+  { name: 'Matcha Bloom', price: '$6.00', desc: 'Ceremonial matcha with vanilla & honey', emoji: '🍵', bg: '#d9e8d0' },
+  { name: 'Almond Croissant', price: '$4.50', desc: 'Buttery layers filled with almond cream', emoji: '🥐', bg: '#f0e6d4' },
+  { name: 'Cold Brew Float', price: '$6.50', desc: 'Nitro cold brew with vanilla bean gelato', emoji: '🧊', bg: '#d4e4f0' }
+];
+
+const testimonials = [
+  { text: "The lavender latte changed my life. I come here every single morning now — it's become my ritual.", name: 'Sarah M.', role: 'Regular since 2020' },
+  { text: "Best pastries in Portland, hands down. The almond croissant is dangerously good. Warm, flaky perfection.", name: 'James K.', role: 'Weekend regular' },
+  { text: "Such a cozy atmosphere! I wrote my entire novel here. The staff remembers everyone's name. True community.", name: 'Emma L.', role: 'Author & coffee lover' },
+  { text: "My go-to spot for client meetings. Professional enough for business, warm enough to feel like home.", name: 'David R.', role: 'Local entrepreneur' }
+];
+
+const igPosts = [
+  { gradient: 'linear-gradient(135deg,#C4A882,#8B9F7B)', emoji: '☕' },
+  { gradient: 'linear-gradient(135deg,#8B9F7B,#5C3D2E)', emoji: '🌿' },
+  { gradient: 'linear-gradient(135deg,#5C3D2E,#C4A882)', emoji: '🥐' },
+  { gradient: 'linear-gradient(135deg,#e8ddd0,#C4A882)', emoji: '✨' },
+  { gradient: 'linear-gradient(135deg,#8B9F7B,#e8ddd0)', emoji: '🍃' },
+  { gradient: 'linear-gradient(135deg,#C4A882,#3A2418)', emoji: '🫘' }
+];
+
+// =================== Build Static UI ===================
+function buildMenu() {
+  const grid = document.getElementById('menuGrid');
+  grid.innerHTML = menuItems.map(item => `
+    <div class="rounded-2xl p-6 transition hover:scale-105 hover:shadow-lg cursor-default" style="background:${item.bg};">
+      <div class="text-4xl mb-4">${item.emoji}</div>
+      <div class="flex items-baseline justify-between mb-2">
+        <h3 class="font-display text-lg font-bold" style="color:#3A2418;">${item.name}</h3>
+        <span class="text-sm font-semibold" style="color:#8B9F7B;">${item.price}</span>
+      </div>
+      <p class="text-sm" style="color:#5C3D2E; opacity:0.8;">${item.desc}</p>
+    </div>
+  `).join('');
+}
+
+function buildTestimonials() {
+  const track = document.getElementById('testimonialTrack');
+  track.innerHTML = testimonials.map(t => `
+    <div class="w-full flex-shrink-0 px-2">
+      <div class="rounded-2xl p-8 sm:p-10 text-center" style="background:#F5EDE3;">
+        <div class="flex justify-center gap-1 mb-4">${'★'.repeat(5).split('').map(s => `<span style="color:#C4A882; font-size:18px;">${s}</span>`).join('')}</div>
+        <p class="font-display text-lg sm:text-xl leading-relaxed mb-6" style="color:#3A2418;">"${t.text}"</p>
+        <p class="font-semibold text-sm" style="color:#5C3D2E;">${t.name}</p>
+        <p class="text-xs mt-1" style="color:#8B9F7B;">${t.role}</p>
+      </div>
+    </div>
+  `).join('');
+  buildDots();
+}
+
+function buildDots() {
+  const dotsContainer = document.getElementById('testimonialDots');
+  dotsContainer.innerHTML = testimonials.map((_, i) => `
+    <button class="testimonial-dot w-2.5 h-2.5 rounded-full transition" style="background:${i === 0 ? '#5C3D2E' : '#C4A882'};" data-index="${i}"></button>
+  `).join('');
+}
+
+function buildIG() {
+  const grid = document.getElementById('igGrid');
+  grid.innerHTML = igPosts.map(p => `
+    <div class="ig-grid-item" style="background:${p.gradient};">
+      <div class="absolute inset-0 flex items-center justify-center text-4xl">${p.emoji}</div>
+    </div>
+  `).join('');
+}
+
+buildMenu();
+buildTestimonials();
+buildIG();
+
+// =================== Testimonials Carousel ===================
+let currentTestimonial = 0;
+function goToTestimonial(idx) {
+  currentTestimonial = ((idx % testimonials.length) + testimonials.length) % testimonials.length;
+  document.getElementById('testimonialTrack').style.transform = `translateX(-${currentTestimonial * 100}%)`;
+  document.querySelectorAll('.testimonial-dot').forEach((dot, i) => {
+    dot.style.background = i === currentTestimonial ? '#5C3D2E' : '#C4A882';
+  });
+}
+document.getElementById('prevTest').addEventListener('click', () => goToTestimonial(currentTestimonial - 1));
+document.getElementById('nextTest').addEventListener('click', () => goToTestimonial(currentTestimonial + 1));
+document.getElementById('testimonialDots').addEventListener('click', e => {
+  if (e.target.dataset.index !== undefined) goToTestimonial(+e.target.dataset.index);
+});
+setInterval(() => goToTestimonial(currentTestimonial + 1), 5000);
+
+// =================== Mobile Menu ===================
+document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+  const menu = document.getElementById('mobileMenu');
+  menu.classList.toggle('hidden');
+});
+document.querySelectorAll('#mobileMenu a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+});
+
+// =================== Order Modal ===================
+function openOrderModal() { document.getElementById('orderModal').classList.add('active'); }
+function closeOrderModal() {
+  document.getElementById('orderModal').classList.remove('active');
+  document.getElementById('orderForm').reset();
+  document.getElementById('orderStatus').style.display = 'none';
+}
+document.getElementById('navOrderBtn').addEventListener('click', openOrderModal);
+document.getElementById('heroOrderBtn').addEventListener('click', openOrderModal);
+document.getElementById('mobileOrderBtn').addEventListener('click', () => {
+  document.getElementById('mobileMenu').classList.add('hidden');
+  openOrderModal();
+});
+document.getElementById('closeOrderModal').addEventListener('click', closeOrderModal);
+document.getElementById('orderModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('orderModal')) closeOrderModal();
+});
+
+// =================== Toast ===================
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+  }, 3000);
+}
+
+// =================== Data SDK ===================
+let allRecords = [];
+
+const dataHandler = {
+  onDataChanged(data) {
+    allRecords = data;
+  }
+};
+
+async function initDataSdk() {
+  const result = await window.dataSdk.init(dataHandler);
+  if (!result.isOk) {
+    console.error('Data SDK init failed');
+  }
+}
+initDataSdk();
+
+// Newsletter form
+document.getElementById('newsletterForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const emailInput = document.getElementById('nlEmail');
+  const btn = document.getElementById('nlSubmitBtn');
+  const email = emailInput.value.trim();
+  if (!email) return;
+
+  if (allRecords.length >= 999) {
+    showToast('Storage limit reached. Please try again later.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Subscribing...';
+
+  const result = await window.dataSdk.create({
+    type: 'newsletter',
+    email: email,
+    name: '',
+    items: '',
+    address: '',
+    created_at: new Date().toISOString()
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Subscribe';
+
+  if (result.isOk) {
+    showToast('Welcome to the Brew & Bloom family! ☕');
+    emailInput.value = '';
+  } else {
+    showToast('Something went wrong. Please try again.', 'error');
+  }
+});
+
+// Order form
+document.getElementById('orderForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('orderSubmitBtn');
+  const name = document.getElementById('orderName').value.trim();
+  const items = document.getElementById('orderItems').value.trim();
+  const address = document.getElementById('orderAddress').value.trim();
+  if (!name || !items || !address) return;
+
+  if (allRecords.length >= 999) {
+    showToast('Storage limit reached. Please try again later.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  document.getElementById('orderSubmitText').textContent = 'Placing Order...';
+
+  const result = await window.dataSdk.create({
+    type: 'order',
+    email: '',
+    name: name,
+    items: items,
+    address: address,
+    created_at: new Date().toISOString()
+  });
+
+  btn.disabled = false;
+  document.getElementById('orderSubmitText').textContent = 'Place Order';
+
+  if (result.isOk) {
+    showToast('Order placed! We\'ll have it ready soon. 🎉');
+    document.getElementById('orderForm').reset();
+    setTimeout(closeOrderModal, 1500);
+  } else {
+    showToast('Order failed. Please try again.', 'error');
+  }
+});
+
+// =================== Element SDK ===================
+const defaultConfig = {
+  background_color: '#FAF7F2',
+  surface_color: '#F5EDE3',
+  text_color: '#3A2418',
+  primary_action_color: '#5C3D2E',
+  secondary_action_color: '#8B9F7B',
+  font_family: 'Playfair Display',
+  font_size: 16,
+  hero_title: 'Handcrafted Coffee & Homemade Pastries',
+  hero_subtitle: 'Where every cup tells a story and every pastry is baked with love. Your neighborhood gathering place.',
+  menu_title: 'Our Favorites',
+  about_title: 'Our Story',
+  about_text: 'Nestled in the heart of downtown, Brew & Bloom was born from a simple dream — to create a space where the aroma of freshly roasted beans meets the warmth of genuine community. Every cup is hand-poured, every pastry baked fresh each morning.',
+  newsletter_title: 'Stay in the Loop',
+  footer_text: '© 2024 Brew & Bloom. All rights reserved.'
+};
+
+async function onConfigChange(config) {
+  const bg = config.background_color || defaultConfig.background_color;
+  const surface = config.surface_color || defaultConfig.surface_color;
+  const text = config.text_color || defaultConfig.text_color;
+  const primary = config.primary_action_color || defaultConfig.primary_action_color;
+  const secondary = config.secondary_action_color || defaultConfig.secondary_action_color;
+  const fontFamily = config.font_family || defaultConfig.font_family;
+  const baseSize = config.font_size || defaultConfig.font_size;
+  const baseFontStack = 'DM Sans, sans-serif';
+  const displayStack = `${fontFamily}, serif`;
+
+  // Backgrounds
+  document.getElementById('app-wrapper').style.background = bg;
+  document.getElementById('hero').style.background = `linear-gradient(135deg, ${surface} 0%, ${bg} 40%, ${surface} 100%)`;
+  document.getElementById('menu').style.background = bg;
+  document.getElementById('about').style.background = surface;
+  document.getElementById('testimonials').style.background = bg;
+  document.getElementById('instagram').style.background = surface;
+  document.getElementById('location').style.background = bg;
+
+  // Nav
+  const nav = document.getElementById('mainNav');
+  nav.style.background = `rgba(${hexToRgb(bg)},0.9)`;
+  nav.querySelectorAll('a, button:not(#navOrderBtn)').forEach(el => el.style.color = primary);
+  document.getElementById('navOrderBtn').style.background = primary;
+  document.getElementById('mobileOrderBtn').style.background = primary;
+
+  // Text colors
+  document.querySelectorAll('.font-display').forEach(el => {
+    el.style.fontFamily = displayStack;
+  });
+
+  // Hero
+  const heroTitle = document.getElementById('heroTitle');
+  heroTitle.textContent = config.hero_title || defaultConfig.hero_title;
+  heroTitle.style.color = text;
+  heroTitle.style.fontFamily = displayStack;
+  heroTitle.style.fontSize = `${baseSize * 3}px`;
+
+  const heroSub = document.getElementById('heroSubtitle');
+  heroSub.textContent = config.hero_subtitle || defaultConfig.hero_subtitle;
+  heroSub.style.color = primary;
+  heroSub.style.fontSize = `${baseSize * 1.125}px`;
+
+  document.getElementById('heroOrderBtn').style.background = primary;
+
+  // Menu
+  const menuTitle = document.getElementById('menuTitle');
+  menuTitle.textContent = config.menu_title || defaultConfig.menu_title;
+  menuTitle.style.color = text;
+  menuTitle.style.fontFamily = displayStack;
+  menuTitle.style.fontSize = `${baseSize * 2.25}px`;
+
+  // About
+  const aboutTitle = document.getElementById('aboutTitle');
+  aboutTitle.textContent = config.about_title || defaultConfig.about_title;
+  aboutTitle.style.color = text;
+  aboutTitle.style.fontFamily = displayStack;
+  aboutTitle.style.fontSize = `${baseSize * 2.25}px`;
+
+  const aboutText = document.getElementById('aboutText');
+  aboutText.textContent = config.about_text || defaultConfig.about_text;
+  aboutText.style.color = primary;
+  aboutText.style.fontSize = `${baseSize}px`;
+
+  // Newsletter
+  const nlTitle = document.getElementById('newsletterTitle');
+  nlTitle.textContent = config.newsletter_title || defaultConfig.newsletter_title;
+  nlTitle.style.fontFamily = displayStack;
+  nlTitle.style.fontSize = `${baseSize * 2.25}px`;
+
+  document.getElementById('nlSubmitBtn').style.background = secondary;
+
+  // Footer
+  const footerText = document.getElementById('footerText');
+  footerText.textContent = config.footer_text || defaultConfig.footer_text;
+
+  // Secondary action color on labels
+  document.querySelectorAll('[style*="color:#8B9F7B"]').forEach(el => {
+    // Only update tracking labels
+  });
+
+  // Testimonial dots
+  document.querySelectorAll('.testimonial-dot').forEach((dot, i) => {
+    dot.style.background = i === currentTestimonial ? primary : secondary;
+  });
+
+  // Prev/next buttons
+  document.getElementById('prevTest').style.borderColor = primary;
+  document.getElementById('prevTest').style.color = primary;
+  document.getElementById('nextTest').style.borderColor = primary;
+  document.getElementById('nextTest').style.color = primary;
+
+  // Order modal
+  document.getElementById('orderSubmitBtn').style.background = primary;
+
+  // Body font
+  document.body.style.fontFamily = baseFontStack;
+  document.body.style.fontSize = `${baseSize}px`;
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+function mapToCapabilities(config) {
+  return {
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+      { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+      { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+      { get: () => config.primary_action_color || defaultConfig.primary_action_color, set: (v) => { config.primary_action_color = v; window.elementSdk.setConfig({ primary_action_color: v }); } },
+      { get: () => config.secondary_action_color || defaultConfig.secondary_action_color, set: (v) => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); } }
+    ],
+    borderables: [],
+    fontEditable: {
+      get: () => config.font_family || defaultConfig.font_family,
+      set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+    },
+    fontSizeable: {
+      get: () => config.font_size || defaultConfig.font_size,
+      set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); }
+    }
+  };
+}
+
+function mapToEditPanelValues(config) {
+  return new Map([
+    ['hero_title', config.hero_title || defaultConfig.hero_title],
+    ['hero_subtitle', config.hero_subtitle || defaultConfig.hero_subtitle],
+    ['menu_title', config.menu_title || defaultConfig.menu_title],
+    ['about_title', config.about_title || defaultConfig.about_title],
+    ['about_text', config.about_text || defaultConfig.about_text],
+    ['newsletter_title', config.newsletter_title || defaultConfig.newsletter_title],
+    ['footer_text', config.footer_text || defaultConfig.footer_text]
+  ]);
+}
+
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange,
+  mapToCapabilities,
+  mapToEditPanelValues
+});
+
+lucide.createIcons();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e0cad5d54bf918b',t:'MTc3NDI2MDk1MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
